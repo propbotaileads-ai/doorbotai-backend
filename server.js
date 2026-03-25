@@ -43,7 +43,8 @@ app.post('/api/lead/new', async (req, res) => {
     const { agentId, name, phone, email, budget, timeline, city, propertyType, buyerSeller, source } = req.body;
     if (!agentId || !phone) return res.status(400).json({ error: 'agentId and phone required' });
 
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
+    // agent loaded async above
     if (!agent || !agent.active) return res.status(404).json({ error: 'Agent not found or inactive' });
 
     const leadData = { name, phone, email, budget, timeline, city, propertyType, buyerSeller, status: 'new', source: source || 'website', agentId };
@@ -74,7 +75,7 @@ app.get('/talk/:agentId', async (req, res) => {
   try {
     const { agentId } = req.params;
     const { phone, name } = req.query;
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) return res.status(404).send('Agent not found');
 
     const callResult = await makeVoiceCall({
@@ -124,7 +125,7 @@ app.post('/webhook/facebook/:agentId', async (req, res) => {
             const lead = { agentId, name: change.value.name || 'Facebook Lead', phone: change.value.phone || '', email: change.value.email || '', source: 'facebook_ads' };
             if (lead.phone) {
               await addLeadToSheet({ ...lead, status: 'new' });
-              const agent = getAgent(agentId);
+              const agent = await getAgent(agentId);
               if (agent && lead.email) {
                 const clickUrl = `${process.env.BASE_URL}/talk/${agentId}?phone=${encodeURIComponent(lead.phone)}&name=${encodeURIComponent(lead.name)}`;
                 await sendLeadEmailToBuyer({ buyerEmail: lead.email, buyerName: lead.name, agentName: agent.agentName, botName: agent.botName, clickToTalkUrl: clickUrl });
@@ -147,7 +148,7 @@ app.post('/webhook/bland-callback', async (req, res) => {
     const leadName = metadata?.leadName;
     if (!agentId || !leadPhone) return res.sendStatus(200);
 
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) return res.sendStatus(200);
 
     const budget = variables?.budget || '';
@@ -217,7 +218,7 @@ app.get('/api/leads/:agentId', async (req, res) => {
 app.post('/api/scrape/:agentId', async (req, res) => {
   try {
     const { agentId } = req.params;
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
     const { scrapeAllSources } = require('./scraper');
     scrapeAllSources(agentId, agent.city).then(async leads => {

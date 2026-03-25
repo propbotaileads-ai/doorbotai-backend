@@ -23,7 +23,7 @@ router.post('/onboard', async (req, res) => {
       return res.status(400).json({ error: 'agentName and email required' });
     }
 
-    const agent = createAgent({
+    const agent = await createAgent({
       agentName,
       botName: botName || agentName + ' AI',
       email,
@@ -56,7 +56,7 @@ router.post('/onboard', async (req, res) => {
 // Step 2: Update bot training
 router.put('/train/:agentId', async (req, res) => {
   try {
-    const agent = updateAgent(req.params.agentId, req.body);
+    const agent = await updateAgent(req.params.agentId, req.body);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
     res.json({
       success: true,
@@ -72,7 +72,7 @@ router.put('/train/:agentId', async (req, res) => {
 // Get agent dashboard data
 router.get('/dashboard/:agentId', async (req, res) => {
   try {
-    const agent = getAgent(req.params.agentId);
+    const agent = await getAgent(req.params.agentId);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
     res.json({
@@ -95,7 +95,7 @@ router.get('/dashboard/:agentId', async (req, res) => {
 // ============================================================
 router.get('/agent/:agentId', async (req, res) => {
   try {
-    const agent = getAgent(req.params.agentId);
+    const agent = await getAgent(req.params.agentId);
     if (!agent) return res.status(404).send('Agent not found');
 
     res.send(`
@@ -216,7 +216,7 @@ router.post('/existing-leads/:agentId', async (req, res) => {
     const { agentId } = req.params;
     const { leads } = req.body;
 
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
     let processed = 0;
@@ -263,7 +263,7 @@ router.post('/book-appointment', async (req, res) => {
   try {
     const { agentId, leadName, leadPhone, leadEmail, budget, city, appointmentDate } = req.body;
 
-    const agent = getAgent(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
     // Book in Google Calendar
