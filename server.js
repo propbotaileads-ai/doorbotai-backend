@@ -4,10 +4,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 
-const { makeVoiceCall, getCallTranscript } = require('./services/bland');
-const { addLeadToSheet, updateLeadStatus } = require('./services/sheets');
-const { sendLeadEmailToBuyer, sendHotLeadAlertToAgent } = require('./services/email');
-const { createAgent, getAgent, getAllAgents, updateAgent, deactivateAgent } = require('./services/agents');
+const { makeVoiceCall, getCallTranscript } = require('./bland');
+const { addLeadToSheet, updateLeadStatus } = require('./sheets');
+const { sendLeadEmailToBuyer, sendHotLeadAlertToAgent } = require('./email');
+const { createAgent, getAgent, getAllAgents, updateAgent, deactivateAgent } = require('./agents');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
