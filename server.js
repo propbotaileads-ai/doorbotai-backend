@@ -190,6 +190,29 @@ app.post('/webhook/payment', async (req, res) => {
   } catch (err) { res.sendStatus(500); }
 });
 
+
+// AGENT STATS from MongoDB
+app.get('/api/stats/:agentId', async (req, res) => {
+  try {
+    const { getAgentStats } = require('./database');
+    const stats = await getAgentStats(req.params.agentId);
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET ALL LEADS for agent from MongoDB
+app.get('/api/leads/:agentId', async (req, res) => {
+  try {
+    const { findLeadsByAgent } = require('./database');
+    const leads = await findLeadsByAgent(req.params.agentId);
+    res.json({ success: true, leads, total: leads.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // SCRAPER ROUTE
 app.post('/api/scrape/:agentId', async (req, res) => {
   try {

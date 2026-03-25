@@ -671,6 +671,63 @@ function syncSheets() {
   showToast('✓ Syncing to Google Sheets...');
 }
 
+
+async function loadRealLeads() {
+  if (!AGENT_ID) return;
+  try {
+    const res = await fetch(BASE_URL + '/api/leads/' + AGENT_ID);
+    const data = await res.json();
+    if (data.success && data.leads.length > 0) {
+      renderRealLeads(data.leads);
+      document.getElementById('stat-leads').textContent = data.total;
+    }
+  } catch (err) { console.log('Using demo data'); }
+}
+
+async function loadRealStats() {
+  if (!AGENT_ID) return;
+  try {
+    const res = await fetch(BASE_URL + '/api/stats/' + AGENT_ID);
+    const data = await res.json();
+    if (data.success) {
+      const s = data.stats;
+      document.getElementById('stat-leads').textContent = s.totalLeads || '0';
+      document.getElementById('stat-appts').textContent = s.appointmentsBooked || '0';
+      document.getElementById('stat-conv').textContent = s.conversionRate || '0%';
+    }
+  } catch (err) { console.log('Stats unavailable'); }
+}
+
+function renderRealLeads(leads) {
+  const tbody = document.getElementById('recent-leads-body');
+  const allTbody = document.getElementById('all-leads-body');
+  
+  const rows = leads.slice(0, 5).map(l => `<tr>
+    <td style='font-weight:400'>${l.name||'—'}</td>
+    <td style='color:var(--muted)'>${l.phone||'—'}</td>
+    <td style='color:var(--gold)'>${l.budget||'—'}</td>
+    <td>${l.city||'—'}</td>
+    <td><span class='badge ${l.status||'cold'}'>${l.status||'new'}</span></td>
+    <td style='color:var(--muted)'>${new Date(l.createdAt).toLocaleString()}</td>
+  </tr>`).join('');
+  
+  if (tbody) tbody.innerHTML = rows || '<tr><td colspan=6 style=color:var(--muted);padding:20px;text-align:center>No leads yet</td></tr>';
+  
+  const allRows = leads.map(l => `<tr>
+    <td style='font-weight:400'>${l.name||'—'}</td>
+    <td style='color:var(--muted)'>${l.phone||'—'}</td>
+    <td style='color:var(--muted)'>${l.email||'—'}</td>
+    <td style='color:var(--gold)'>${l.budget||'—'}</td>
+    <td>${l.city||'—'}</td>
+    <td>${l.propertyType||'—'}</td>
+    <td><span class='badge ${l.status||'cold'}'>${l.status||'new'}</span></td>
+    <td style='color:var(--muted)'>${l.source||'—'}</td>
+    <td style='color:var(--muted)'>${new Date(l.createdAt).toLocaleString()}</td>
+  </tr>`).join('');
+  
+  if (allTbody) allTbody.innerHTML = allRows || '<tr><td colspan=9 style=color:var(--muted);padding:20px;text-align:center>No leads yet</td></tr>';
+}
+
 // Start
 init();
 </script>

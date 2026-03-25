@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const db = require('./database');
 
 const auth = new google.auth.GoogleAuth({
   credentials: {
@@ -11,24 +12,24 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 
 async function addLeadToSheet(leadData) {
-  const {
-    name, phone, email, budget, timeline,
-    city, propertyType, buyerSeller, status,
-    appointmentDate, source, agentId
-  } = leadData;
+  const { name, phone, email, budget, timeline, city, propertyType, buyerSeller, status, source, agentId } = leadData;
 
+  // Save to MongoDB first
+  await db.saveLead({
+    name, phone, email, budget, timeline,
+    city, propertyType, buyerSeller,
+    status: status || 'new',
+    source: source || 'website',
+    agentId,
+    createdAt: new Date(),
+  });
+
+  // Save to Google Sheets
   const row = [
-    name || '',
-    phone || '',
-    email || '',
-    budget || '',
-    timeline || '',
-    city || '',
-    propertyType || '',
-    buyerSeller || '',
-    status || 'new',
-    appointmentDate || '',
-    source || '',
+    name || '', phone || '', email || '',
+    budget || '', timeline || '', city || '',
+    propertyType || '', buyerSeller || '',
+    status || 'new', '', source || '',
     new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
     agentId || ''
   ];
@@ -40,7 +41,7 @@ async function addLeadToSheet(leadData) {
       valueInputOption: 'USER_ENTERED',
       resource: { values: [row] },
     });
-    console.log('Lead added to Google Sheets:', name);
+    console.log('[DoorBot AI] Lead saved to Sheets:', name);
     return true;
   } catch (err) {
     console.error('Sheets error:', err.message);
@@ -49,6 +50,10 @@ async function addLeadToSheet(leadData) {
 }
 
 async function updateLeadStatus(phone, status, appointmentDate) {
+  // Update MongoDB
+  await db.updateLeadByPhone(phone, { status, appointmentDate });
+
+  // Update Google Sheets
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
@@ -64,7 +69,6 @@ async function updateLeadStatus(phone, status, appointmentDate) {
           valueInputOption: 'USER_ENTERED',
           resource: { values: [[status, appointmentDate || '']] },
         });
-        console.log('Lead status updated:', phone, status);
         return true;
       }
     }

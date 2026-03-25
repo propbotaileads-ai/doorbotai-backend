@@ -1,13 +1,16 @@
-const agents = {};
+const { v4: uuidv4 } = require('uuid');
+const db = require('./database');
 
-function createAgent(agentData) {
-  const { v4: uuidv4 } = require('uuid');
+// In-memory fallback
+const agentsCache = {};
+
+async function createAgent(agentData) {
   const agentId = agentData.agentId || uuidv4().split('-')[0];
-
-  agents[agentId] = {
+  
+  const agent = {
     agentId,
     agentName: agentData.agentName || 'Your Agent',
-    botName: agentData.botName || agentData.agentName + ' AI',
+    botName: agentData.botName || (agentData.agentName + ' AI'),
     email: agentData.email || '',
     phone: agentData.phone || '',
     city: agentData.city || '',
@@ -16,38 +19,56 @@ function createAgent(agentData) {
     tone: agentData.tone || 'Friendly & Approachable',
     calendlyLink: agentData.calendlyLink || '',
     googleSheetId: agentData.googleSheetId || process.env.GOOGLE_SHEETS_ID,
+    notificationEmail: agentData.notificationEmail || agentData.email,
+    language: agentData.language || 'English',
+    about: agentData.about || '',
+    faqs: agentData.faqs || '',
     plan: agentData.plan || 'starter',
     active: true,
     createdAt: new Date().toISOString(),
     leads: [],
   };
 
-  console.log('Agent created:', agentId, agentData.agentName);
-  return agents[agentId];
+  // Save to MongoDB
+  await db.saveAgent(agent);
+  // Also keep in memory cache
+  agentsCache[agentId] = agent;
+  
+  console.log('[DoorBot AI] Agent created:', agentId, agent.agentName);
+  return agent;
 }
 
-function getAgent(agentId) {
-  return agents[agentId] || null;
-}
-
-function getAllAgents() {
-  return Object.values(agents);
-}
-
-function updateAgent(agentId, updates) {
-  if (agents[agentId]) {
-    agents[agentId] = { ...agents[agentId], ...updates };
-    return agents[agentId];
+async function getAgent(agentId) {
+  // Try cache first
+  if (agentsCache[agentId]) return agentsCache[agentId];
+  
+  // Try MongoDB
+  const agent = await db.findAgent(agentId);
+  if (agent) {
+    agentsCache[agentId] = agent;
+    return agent;
   }
+  
   return null;
 }
 
-function deactivateAgent(agentId) {
-  if (agents[agentId]) {
-    agents[agentId].active = false;
-    return true;
-  }
-  return false;
+async function updateAgent(agentId, updates) {
+  const agent = await getAgent(agentId);
+  if (!agent) return null;
+  
+  const updated = { ...agent, ...updates, updatedAt: new Date().toISOString() };
+  agentsCache[agentId] = updated;
+  await db.saveAgent(updated);
+  return updated;
+}
+
+async function getAllAgents() {
+  return await db.findAllAgents();
+}
+
+async function deactivateAgent(agentId) {
+  await updateAgent(agentId, { active: false });
+  return true;
 }
 
 module.exports = { createAgent, getAgent, getAllAgents, updateAgent, deactivateAgent };
